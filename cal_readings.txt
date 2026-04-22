@@ -1,0 +1,6 @@
+Saved stereo calibration to: stereo_calibration.npz
+Left RMS reprojection error: 0.9387317914280411
+Right RMS reprojection error: 0.9147503504791932
+Stereo RMS reprojection error: 32.819235292709244
+Baseline (same units as square_size): 272.43485586328705
+
