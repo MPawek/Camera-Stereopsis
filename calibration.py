@@ -19,7 +19,7 @@ import numpy as np
 
 # Default checkerboard means 6 x 9 INNER corners.
 CHECKERBOARD = (6, 9)
-SQUARE_SIZE_MM = 22.58
+SQUARE_SIZE_MM = 23
 CALIBRATION_FILE = "stereo_calibration.npz"
 
 
@@ -53,7 +53,7 @@ def collect_calibration_points(
     right_dir: str,
     checkerboard: Tuple[int, int],
     square_size: float,
-    pattern: str = "*.jpg",
+    pattern: str = "*.png",
     preview: bool = False,
 ) -> Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray], Tuple[int, int]]:
     """Find checkerboard corners in stereo image pairs."""
@@ -68,7 +68,14 @@ def collect_calibration_points(
     pairs = _find_image_pairs(left_dir, right_dir, pattern)
     print(f"Found {len(pairs)} stereo pairs.")
 
+
+    os.makedirs("debug/left", exist_ok=True)
+    os.makedirs("debug/right", exist_ok=True)
+    i = 0
+
     for left_path, right_path in pairs:
+    
+        i += 1
         left_img = cv2.imread(left_path)
         right_img = cv2.imread(right_path)
         if left_img is None or right_img is None:
@@ -91,6 +98,7 @@ def collect_calibration_points(
             corners_left = cv2.cornerSubPix(gray_left, corners_left, (11, 11), (-1, -1), criteria)
             corners_right = cv2.cornerSubPix(gray_right, corners_right, (11, 11), (-1, -1), criteria)
 
+
             objpoints.append(objp.copy())
             imgpoints_left.append(corners_left)
             imgpoints_right.append(corners_right)
@@ -103,6 +111,13 @@ def collect_calibration_points(
                 cv2.imshow("left corners", left_vis)
                 cv2.imshow("right corners", right_vis)
                 cv2.waitKey(250)
+
+                
+                cv2.imwrite(f"debug/left/left_{i:04d}.png", left_vis)
+                cv2.imwrite(f"debug/right/right_{i:04d}.png", right_vis)
+
+
+
         else:
             print(
                 f"Rejected pair: {Path(left_path).name} / {Path(right_path).name} "
@@ -125,7 +140,7 @@ def calibrate_stereo(
     right_dir: str,
     checkerboard: Tuple[int, int] = CHECKERBOARD,
     square_size: float = SQUARE_SIZE_MM,
-    pattern: str = "*.jpg",
+    pattern: str = "*.png",
     output_file: str = CALIBRATION_FILE,
     preview: bool = False,
 ) -> None:
@@ -265,6 +280,15 @@ def run_demo(left_image: str, right_image: str, calibration_file: str = CALIBRAT
     disparity = compute_disparity(left_rect, right_rect)
     points_3d = reconstruct_3d(disparity, calib)
 
+
+    combined = np.hstack((left_rect, right_rect))
+
+    for y in range(0, combined.shape[0], 40):
+        cv2.line(combined, (0, y), (combined.shape[1], y), (0, 255, 0), 1)
+
+    cv2.imshow("Rectified Pair", combined)
+    cv2.waitKey(0)
+
     save_disparity_preview(disparity)
     np.save("points_3d.npy", points_3d)
     print("Saved 3D points to: points_3d.npy")
@@ -277,7 +301,7 @@ def parse_args() -> argparse.Namespace:
     cal = subparsers.add_parser("calibrate", help="Calibrate a stereo camera pair from checkerboard images.")
     cal.add_argument("--left-dir", required=True, help="Directory containing left camera checkerboard images.")
     cal.add_argument("--right-dir", required=True, help="Directory containing right camera checkerboard images.")
-    cal.add_argument("--pattern", default="*.jpg", help="Glob pattern for calibration images.")
+    cal.add_argument("--pattern", default="*.png", help="Glob pattern for calibration images.")
     cal.add_argument("--corners-x", type=int, default=CHECKERBOARD[0], help="Number of inner corners along X.")
     cal.add_argument("--corners-y", type=int, default=CHECKERBOARD[1], help="Number of inner corners along Y.")
     cal.add_argument("--square-size", type=float, default=SQUARE_SIZE_MM, help="Checkerboard square size in mm.")
