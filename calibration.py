@@ -18,7 +18,7 @@ import numpy as np
 
 
 # Default checkerboard means 6 x 9 INNER corners.
-CHECKERBOARD = (6, 9)
+CHECKERBOARD = (9, 6)
 SQUARE_SIZE_MM = 23
 CALIBRATION_FILE = "stereo_calibration.npz"
 

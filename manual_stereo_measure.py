@@ -18,9 +18,12 @@ def load_calibration(calibration_path):
     data = np.load(calibration_path)
 
     required_keys = [
-        "mapLx", "mapLy",
-        "mapRx", "mapRy",
-        "Q"
+    "image_size",
+    "mtx_l", "dist_l",
+    "mtx_r", "dist_r",
+    "R1", "R2",
+    "P1", "P2",
+    "Q"
     ]
 
     for key in required_keys:
@@ -30,20 +33,25 @@ def load_calibration(calibration_path):
     return data
 
 
-def compute_disparity(rectified_left, rectified_right):
-    gray_left = cv2.cvtColor(rectified_left, cv2.COLOR_BGR2GRAY)
-    gray_right = cv2.cvtColor(rectified_right, cv2.COLOR_BGR2GRAY)
+def compute_disparity(left_rect: np.ndarray, right_rect: np.ndarray) -> np.ndarray:
+    gray_l = cv2.cvtColor(left_rect, cv2.COLOR_BGR2GRAY) if left_rect.ndim == 3 else left_rect
+    gray_r = cv2.cvtColor(right_rect, cv2.COLOR_BGR2GRAY) if right_rect.ndim == 3 else right_rect
 
-    stereo = cv2.StereoBM_create(
-        numDisparities=16 * 6,
-        blockSize=15
+    # numDisparities must be divisible by 16.
+    stereo = cv2.StereoSGBM_create(
+        minDisparity=0,
+        numDisparities=16 * 8,
+        blockSize=5,
+        P1=8 * 3 * 5 ** 2,
+        P2=32 * 3 * 5 ** 2,
+        disp12MaxDiff=1,
+        uniquenessRatio=10,
+        speckleWindowSize=100,
+        speckleRange=32,
+        preFilterCap=63,
+        mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY,
     )
-
-    disparity = stereo.compute(gray_left, gray_right)
-
-    # Important: OpenCV StereoBM/SGBM returns fixed-point disparity scaled by 16.
-    disparity = disparity.astype(np.float32) / 16.0
-
+    disparity = stereo.compute(gray_l, gray_r).astype(np.float32) / 16.0
     return disparity
 
 
@@ -71,10 +79,22 @@ def main():
     if right is None:
         raise FileNotFoundError(f"Could not load right image: {args.right}")
 
-    mapLx = calib["mapLx"]
-    mapLy = calib["mapLy"]
-    mapRx = calib["mapRx"]
-    mapRy = calib["mapRy"]
+    image_size = tuple(int(v) for v in calib["image_size"])
+
+    h, w = left.shape[:2]
+    if (w, h) != image_size:
+        raise ValueError(f"Image size {(w, h)} does not match calibration size {image_size}.")
+
+    mapLx, mapLy = cv2.initUndistortRectifyMap(
+        calib["mtx_l"], calib["dist_l"], calib["R1"], calib["P1"],
+        image_size, cv2.CV_32FC1
+    )
+
+    mapRx, mapRy = cv2.initUndistortRectifyMap(
+        calib["mtx_r"], calib["dist_r"], calib["R2"], calib["P2"],
+        image_size, cv2.CV_32FC1
+    )
+
     Q = calib["Q"]
 
     rect_left = cv2.remap(left, mapLx, mapLy, cv2.INTER_LINEAR)
@@ -122,6 +142,10 @@ def main():
 
     (x1, y1), (x2, y2) = clicked_points[:2]
 
+    if disparity[y1, x1] <= 0 or disparity[y2, x2] <= 0:
+        print("Invalid disparity at one or both clicked points. Choose different points.")
+        return
+
     p1 = points_3d[y1, x1]
     p2 = points_3d[y2, x2]
 
@@ -138,6 +162,11 @@ def main():
 
     print(f"\nMeasured distance: {distance:.2f} mm")
     print("\nCompare this against the real-world distance measured with a ruler/calipers.")
+
+    print("Disparity P1:", disparity[y1, x1])
+    print("Disparity P2:", disparity[y2, x2])
+    print("P1:", p1)
+    print("P2:", p2)
 
 
 if __name__ == "__main__":
