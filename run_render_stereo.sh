@@ -10,12 +10,6 @@ BACKGROUND_BUILDER="$SCRIPT_DIR/build_backgrounds"
 
 # --------------------------------------------------------------------
 # Stereo measurement integration.
-#
-# These paths assume your stereo script, calibration file, and partner
-# output folders live relative to this script directory.
-#
-# Update the four image/overlay paths inside STEREO_CMD near the bottom
-# if your partner's program writes files somewhere else.
 # --------------------------------------------------------------------
 STEREO_SCRIPT="$SCRIPT_DIR/silhouette_stereo_measure.py"
 STEREO_CALIBRATION="$SCRIPT_DIR/stereo_calibration.npz"
@@ -211,11 +205,6 @@ if grep -q "PASS" "$COMPARE_OUTPUT_FILE"; then
 
     mkdir -p "$STEREO_OUTPUT_DIR"
 
-    # ----------------------------------------------------------------
-    # IMPORTANT:
-    # Update these four file paths pipeline writes
-    # the full-frame original images and fitted CAD overlays elsewhere.
-    # ----------------------------------------------------------------
     STEREO_CMD=(
         python3
         "$STEREO_SCRIPT"
@@ -225,7 +214,7 @@ if grep -q "PASS" "$COMPARE_OUTPUT_FILE"; then
         --left-edge-overlay "$SCRIPT_DIR/../full_frame/cam_2/full_frame_fitted_cad_overlay.png"
         --right-edge-overlay "$SCRIPT_DIR/../full_frame/cam_1/full_frame_fitted_cad_overlay.png"
         --expected-width 50
-        --expected-height 50
+        --expected-height 50s
         --output-dir "$STEREO_OUTPUT_DIR"
         --json-output "$STEREO_JSON_OUTPUT"
     )
