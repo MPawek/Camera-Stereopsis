@@ -184,11 +184,11 @@ if [ "$COMPARE_STATUS" -ne 0 ]; then
     exit "$COMPARE_STATUS"
 fi
 
-if grep -q "FAIL" "$COMPARE_OUTPUT_FILE"; then
+if grep -q "NO" "$COMPARE_OUTPUT_FILE"; then
     echo
     echo "Live comparison output contains FAIL."
     echo "Stereo measurement will not run."
-elif grep -q "PASS" "$COMPARE_OUTPUT_FILE"; then
+elif grep -q "YES" "$COMPARE_OUTPUT_FILE"; then
     echo
     echo "Live comparison result: PASS"
     echo "Running stereo measurement..."
