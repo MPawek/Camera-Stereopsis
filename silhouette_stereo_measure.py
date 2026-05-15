@@ -15,21 +15,13 @@ Supported objects
 - cube
 - cylinder
 
-This version intentionally does not include a sphere/generic-object mode.
+This version currently does not work on spheres.
 
-Expected integration inputs
+Expected inputs
 ---------------------------
-Preferred:
-    --left-edge-overlay  <left full-frame CAD/edge overlay>
-    --right-edge-overlay <right full-frame CAD/edge overlay>
-
-Optional for debug/fallback mask generation:
-    --left-mask  <left full-frame filled mask>
-    --right-mask <right full-frame filled mask>
-
 Images, masks, and overlays should match the calibration frame size. If the
 current camera frames are 1280x720 and the calibration expects 1282x759, the
-script can apply the known padding fallback unless --no-padding is used.
+script can apply padding unless --no-padding is used.
 """
 
 import argparse
